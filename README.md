@@ -26,4 +26,7 @@ This is an online grocery website built with HTML, CSS (using Tailwind CSS), and
 - `js/` - JavaScript files
 - `css/` - CSS files
 - `images/` - Image assets
-- `data/` - JSON data files
+
+## Database - SupaBase
+
+
