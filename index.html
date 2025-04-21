@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fresh Groceries by TP - Online Grocery Store</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="css/logo.css">
+  <link rel="stylesheet" href="css/product-placeholders.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f9fafb;
+    }
+    
+    .category-icon {
+      transition: transform 0.3s ease;
+    }
+    
+    .rotate-180 {
+      transform: rotate(180deg);
+    }
+    
+    .product-card:hover {
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+  </style>
+  
+  <!-- Supabase Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Your Custom Script -->
+  <script src="js/script.js" defer></script> 
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="bg-white shadow-md">
+    <div class="container mx-auto px-4 py-3">
+      <div class="flex justify-between items-center">
+        <!-- Logo -->
+        <a href="index.html" class="flex items-center">
+          <div class="logo-container">
+            <div class="logo"></div>
+            <span class="ml-2 text-xl font-bold text-green-600">Fresh Groceries by TP</span>
+          </div>
+        </a>
+        
+        <!-- Search Box -->
+        <div class="w-1/3">
+          <div class="relative">
+            <input 
+              type="text" 
+              id="search-input" 
+              class="w-full px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Search for products..."
+            >
+            <button class="absolute right-3 top-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Cart Icon -->
+        <div class="relative flex items-center">
+          <span class="mr-2 font-medium text-gray-600">Your Cart</span>
+          <button onclick="toggleCart()" class="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span id="cart-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+  
+  <!-- Main Content -->
+  <div class="container mx-auto px-4 py-8">
+    <div class="flex flex-wrap -mx-4">
+      <!-- Categories Sidebar -->
+      <div class="w-full md:w-1/4 px-4">
+        <div class="bg-white rounded-lg shadow-md p-4 mb-4">
+          <h2 class="text-lg font-semibold mb-3">Categories</h2>
+          <div id="categories-container">
+            <!-- Categories will be populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+      
+      <!-- Products Grid -->
+      <div class="w-full md:w-3/4 px-4">
+        <h2 class="text-2xl font-bold mb-6">Products</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="products-container">
+          <!-- Products will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Shopping Cart -->
+  <div id="cart-container" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-screen overflow-hidden flex flex-col">
+      <div class="flex justify-between items-center px-6 py-4 bg-blue-500 text-white">
+        <h2 class="text-xl font-semibold">Your Shopping Cart</h2>
+        <button onclick="toggleCart()" class="text-white hover:text-gray-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      
+      <div class="flex-grow overflow-y-auto p-6" id="cart-items">
+        <!-- Cart items will be populated by JavaScript -->
+      </div>
+      
+      <div class="border-t p-6">
+        <div class="flex justify-between font-bold text-lg mb-4">
+          <span>Total:</span>
+          <span id="cart-total">$0.00</span>
+        </div>
+        
+        <div class="flex space-x-4">
+          <button onclick="clearCart()" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded transition-colors flex-grow">
+            Clear Cart
+          </button>
+          <button id="place-order-btn" onclick="placeOrder()" class="bg-gray-300 cursor-not-allowed text-white py-2 px-4 rounded transition-colors flex-grow" disabled>
+            Place Order
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Scripts -->
+  <!-- Removed data/products.js and moved script.js to head -->
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Shopping Cart - Fresh Groceries by TP</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="css/logo.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f9fafb;
+    }
+  </style>
+  
+  <!-- Supabase Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Your Custom Script -->
+  <script src="js/script.js" defer></script>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="bg-white shadow-md">
+    <div class="container mx-auto px-4 py-3">
+      <div class="flex justify-between items-center">
+        <!-- Logo -->
+        <a href="index.html" class="flex items-center">
+          <div class="logo-container">
+            <div class="logo"></div>
+            <span class="ml-2 text-xl font-bold text-green-600">Fresh Groceries by TP</span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </nav>
+  
+  <!-- Main Content -->
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold mb-6">Your Shopping Cart</h1>
+    
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+      <div class="p-6">
+        <div id="cart-items" class="mb-4 divide-y">
+          <!-- Cart items will be populated by JavaScript -->
+        </div>
+        
+        <div class="border-t pt-4 mt-4">
+          <div class="flex justify-between font-bold text-lg mb-4">
+            <span>Total:</span>
+            <span id="cart-total">$0.00</span>
+          </div>
+          
+          <div class="flex space-x-4">
+            <a href="index.html" class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded transition-colors">
+              Continue Shopping
+            </a>
+            <button onclick="clearCart()" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded transition-colors">
+              Clear Cart
+            </button>
+            <button id="place-order-btn" onclick="placeOrder()" class="bg-gray-300 cursor-not-allowed text-white py-2 px-4 rounded transition-colors" disabled>
+              Place Order
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Scripts -->
+  <!-- Removed data/products.js and moved script.js to head -->
+</body>
+</html>
