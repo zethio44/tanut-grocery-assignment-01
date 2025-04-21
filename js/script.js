@@ -651,7 +651,7 @@ async function submitOrder(event) {
   const submitButton = event.target.querySelector('button[type="submit"]');
   // Set to processing state but maintain blue color
   submitButton.disabled = true;
-  submitButton.innerHTML = '<span class="inline-flex items-center"><svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Processing...</span>';
+  submitButton.innerHTML = '<span class="inline-flex items-center"><svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Processing...</span>';
 
   if (cart.length === 0) {
     alert('Your cart is empty!');
@@ -724,39 +724,76 @@ async function submitOrder(event) {
   
   // If all updates succeeded:
   // Save cart items for confirmation page before clearing
-  const orderDetails = {
-    items: JSON.parse(JSON.stringify(cart)), // Deep copy to ensure data isn't affected by later operations
-    total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-    date: new Date().toISOString()
-  };
-  
-  // Store order in sessionStorage (more reliable for cross-page data) AND localStorage (backup)
-  sessionStorage.setItem('currentOrder', JSON.stringify(orderDetails));
-  localStorage.setItem('lastOrder', JSON.stringify(orderDetails));
-  console.log("Saved order details:", orderDetails); // Debug log
-  
-  // Get email before clearing any data
+  // Get email before any data clearing
   const form = document.getElementById('delivery-form');
   const email = form.querySelector('#email').value;
   
-  // Clear cart (from localStorage)
-  clearCart(); 
+  const orderDetails = {
+    email: email, // Include email in the order details
+    items: JSON.parse(JSON.stringify(cart)), // Deep copy to ensure data isn't affected by later operations
+    total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+    date: new Date().toISOString(),
+    orderId: generateOrderId() // Add a unique order ID
+  };
   
-  // Redirect to confirmation page with order data in URL hash for extra reliability
-  const orderHash = btoa(JSON.stringify({
-    email: email,
-    orderTime: new Date().getTime()
-  }));
-  window.location.href = `confirmation.html?email=${encodeURIComponent(email)}&order=${orderHash}`;
-  
-  // No need to re-enable button as we are navigating away
+  // Store order in multiple storage mechanisms for redundancy
+  try {
+    // 1. Store in sessionStorage (most reliable for current session)
+    sessionStorage.setItem('currentOrder', JSON.stringify(orderDetails));
+    
+    // 2. Store in localStorage with email as part of the key
+    localStorage.setItem(`order_${email}`, JSON.stringify(orderDetails));
+    
+    // 3. Store in localStorage as lastOrder (backward compatibility)
+    localStorage.setItem('lastOrder', JSON.stringify(orderDetails));
+    
+    // 4. Store the order index for retrieval
+    let orderIndex = JSON.parse(localStorage.getItem('orderIndex') || '[]');
+    orderIndex.push({ 
+      email: email, 
+      orderId: orderDetails.orderId, 
+      date: orderDetails.date 
+    });
+    // Keep only the last 10 orders in the index
+    if (orderIndex.length > 10) orderIndex = orderIndex.slice(-10);
+    localStorage.setItem('orderIndex', JSON.stringify(orderIndex));
+    
+    console.log("Saved order details:", orderDetails); // Debug log
+    
+    // Add a small delay to ensure storage operations complete before proceeding
+    setTimeout(() => {
+      // Verify data was stored correctly
+      const verifyData = sessionStorage.getItem('currentOrder');
+      console.log("Verification check - Data stored successfully:", !!verifyData);
+      
+      // Clear cart (from localStorage)
+      clearCart(); 
+      
+      // Redirect to confirmation page with order data in URL
+      window.location.href = `confirmation.html?email=${encodeURIComponent(email)}&orderId=${encodeURIComponent(orderDetails.orderId)}`;
+    }, 500); // 500ms delay to ensure storage operations complete
+    
+  } catch (error) {
+    console.error("Error saving order details:", error);
+    alert("There was an error processing your order. Please try again.");
+    submitButton.disabled = false;
+    submitButton.innerHTML = 'Submit Order';
+  }
+}
+
+// Generate a unique order ID
+function generateOrderId() {
+  return 'ORD-' + Date.now() + '-' + Math.random().toString(36).substring(2, 10);
 }
 
 // Display order confirmation
 function displayOrderConfirmation() {
-  // Get email from URL parameters
+  // Get email and orderId from URL parameters
   const urlParams = new URLSearchParams(window.location.search);
   const email = urlParams.get('email');
+  const orderId = urlParams.get('orderId');
+  
+  // Update email display
   const emailElement = document.getElementById('confirmation-email');
   if (emailElement && email) {
     emailElement.textContent = email;
@@ -766,27 +803,72 @@ function displayOrderConfirmation() {
   const orderContainer = document.getElementById('order-details');
   if (!orderContainer) return;
   
-  // Try to get order from sessionStorage first (most reliable)
-  let orderData = sessionStorage.getItem('currentOrder');
-  
-  // If not in sessionStorage, try localStorage as backup
-  if (!orderData) {
-    orderData = localStorage.getItem('lastOrder');
-  }
-  
-  console.log("Retrieved order data:", orderData); // Debug log
-  
-  if (!orderData) {
-    orderContainer.innerHTML = '<p class="text-gray-600">No order details available.</p>';
-    return;
-  }
+  // Try multiple sources to get order data
+  let orderData = null;
+  let order = null;
   
   try {
-    const order = JSON.parse(orderData);
-    console.log("Parsed order:", order); // Debug log
+    // 1. Try sessionStorage first (most reliable for current session)
+    orderData = sessionStorage.getItem('currentOrder');
+    if (orderData) {
+      console.log("Retrieved order from sessionStorage");
+      order = JSON.parse(orderData);
+    }
     
+    // 2. If not found or doesn't match email/orderId, try localStorage with email key
+    if (!order || (email && order.email !== email) || (orderId && order.orderId !== orderId)) {
+      orderData = localStorage.getItem(`order_${email}`);
+      if (orderData) {
+        console.log("Retrieved order from localStorage by email");
+        order = JSON.parse(orderData);
+      }
+    }
+    
+    // 3. If still not found, try lastOrder from localStorage
+    if (!order) {
+      orderData = localStorage.getItem('lastOrder');
+      if (orderData) {
+        console.log("Retrieved order from lastOrder");
+        order = JSON.parse(orderData);
+      }
+    }
+    
+    // 4. If still not found, try the order index
+    if (!order && email) {
+      const orderIndex = JSON.parse(localStorage.getItem('orderIndex') || '[]');
+      const indexEntry = orderIndex.find(entry => entry.email === email);
+      if (indexEntry) {
+        console.log("Found order in index, retrieving by orderId");
+        // We don't have the full order data in the index, but we can show a generic message
+        order = {
+          email: email,
+          orderId: indexEntry.orderId,
+          date: indexEntry.date,
+          items: [], // Empty items, will show generic message
+          total: 0
+        };
+      }
+    }
+    
+    console.log("Final order data:", order); // Debug log
+    
+    // If no order data found through any method
+    if (!order) {
+      orderContainer.innerHTML = '<p class="text-gray-600">No order details available. This may happen if you refreshed or revisited this page after completing your order.</p>';
+      return;
+    }
+    
+    // If order has no items or empty items array
     if (!order.items || order.items.length === 0) {
-      orderContainer.innerHTML = '<p class="text-gray-600">No items in this order.</p>';
+      // Show a generic confirmation instead of "No items"
+      orderContainer.innerHTML = `
+        <h2 class="text-lg font-semibold mb-3">Order Confirmation</h2>
+        <p class="text-gray-600 mb-4">Your order has been received and is being processed.</p>
+        <div class="flex justify-between font-bold text-lg border-t pt-3">
+          <span>Order ID:</span>
+          <span>${order.orderId || 'N/A'}</span>
+        </div>
+      `;
       return;
     }
     
@@ -805,9 +887,10 @@ function displayOrderConfirmation() {
       </div>
     `).join('');
     
-    // Add order total
+    // Add order total and order ID
     orderContainer.innerHTML = `
       <h2 class="text-lg font-semibold mb-3">Order Items</h2>
+      <p class="text-gray-600 mb-2">Order ID: ${order.orderId || 'N/A'}</p>
       <div class="mb-4">
         ${orderItemsHtml}
       </div>
@@ -819,7 +902,7 @@ function displayOrderConfirmation() {
     
   } catch (error) {
     console.error('Error displaying order details:', error);
-    orderContainer.innerHTML = '<p class="text-gray-600">Error displaying order details.</p>';
+    orderContainer.innerHTML = '<p class="text-gray-600">Error displaying order details. Please contact customer support with your order details.</p>';
   }
 }
 
