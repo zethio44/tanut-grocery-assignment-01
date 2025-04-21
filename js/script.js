@@ -610,7 +610,8 @@ async function checkItemsAvailability() {
   
   // Use Promise.all to fetch all product details concurrently
   const productChecks = cart.map(async (cartItem) => {
-    const product = await fetchProductById(cartItem.id);
+    const product = await fetchProductById(cartItem.id); // Fetch latest product data
+
     if (!product || !product.inStock) {
       return { available: false, name: cartItem.name, reason: 'Item is no longer in stock' };
     } else if (product.quantity < cartItem.quantity) {
@@ -728,6 +729,9 @@ async function submitOrder(event) {
     total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
     date: new Date().toISOString()
   };
+  
+  // Store order in sessionStorage (more reliable for cross-page data) AND localStorage (backup)
+  sessionStorage.setItem('currentOrder', JSON.stringify(orderDetails));
   localStorage.setItem('lastOrder', JSON.stringify(orderDetails));
   console.log("Saved order details:", orderDetails); // Debug log
   
@@ -738,14 +742,19 @@ async function submitOrder(event) {
   // Clear cart (from localStorage)
   clearCart(); 
   
-  // Redirect to confirmation page
-  window.location.href = `confirmation.html?email=${encodeURIComponent(email)}`;
+  // Redirect to confirmation page with order data in URL hash for extra reliability
+  const orderHash = btoa(JSON.stringify({
+    email: email,
+    orderTime: new Date().getTime()
+  }));
+  window.location.href = `confirmation.html?email=${encodeURIComponent(email)}&order=${orderHash}`;
   
   // No need to re-enable button as we are navigating away
 }
 
 // Display order confirmation
 function displayOrderConfirmation() {
+  // Get email from URL parameters
   const urlParams = new URLSearchParams(window.location.search);
   const email = urlParams.get('email');
   const emailElement = document.getElementById('confirmation-email');
@@ -757,7 +766,14 @@ function displayOrderConfirmation() {
   const orderContainer = document.getElementById('order-details');
   if (!orderContainer) return;
   
-  const orderData = localStorage.getItem('lastOrder');
+  // Try to get order from sessionStorage first (most reliable)
+  let orderData = sessionStorage.getItem('currentOrder');
+  
+  // If not in sessionStorage, try localStorage as backup
+  if (!orderData) {
+    orderData = localStorage.getItem('lastOrder');
+  }
+  
   console.log("Retrieved order data:", orderData); // Debug log
   
   if (!orderData) {
