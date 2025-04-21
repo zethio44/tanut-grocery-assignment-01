@@ -1,6 +1,6 @@
 # E-Commerce Website
 
-This is an e-commerce website built with HTML, CSS (using Tailwind CSS), and JavaScript.
+This is an online grocery website built with HTML, CSS (using Tailwind CSS), and JavaScript for 32516 Internet Programming - Autumn 2025 - Assignment 1.
 
 ## Features
 
