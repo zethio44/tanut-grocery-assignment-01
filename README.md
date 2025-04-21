@@ -1,4 +1,4 @@
-# E-Commerce Website
+# Assignment 1 - Online Grocery Store with Graphic User Interface
 
 This is an online grocery website built with HTML, CSS (using Tailwind CSS), and JavaScript for 32516 Internet Programming - Autumn 2025 - Assignment 1.
 
